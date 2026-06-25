@@ -2,33 +2,26 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>히로의 상담 신청소</title>
+    <title>히로의 상담소</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <style>
         body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; padding: 20px; }
         .container { max-width: 500px; margin: auto; border: 1px solid #333; padding: 20px; border-radius: 10px; position: relative; }
-        
-        /* 우측 상단 관리자 로그인 버튼 (fixed로 위치 고정) */
-        .admin-login-area { position: absolute; top: 15px; right: 15px; z-index: 100; }
-        .admin-btn { padding: 5px 10px; font-size: 12px; background: #333; color: #fff; border: 1px solid #555; cursor: pointer; border-radius: 4px; }
-        
+        .admin-login-area { position: absolute; top: 10px; right: 10px; }
+        .admin-btn { padding: 4px 8px; font-size: 11px; background: #333; color: #888; border: 1px solid #555; cursor: pointer; border-radius: 4px; }
         input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #1e1e1e; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; margin-top: 10px; background: #007bff; border: none; color: white; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        
-        .section { margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; }
-        .admin-list { margin-top: 30px; padding: 20px; background: #1a1a1a; border: 1px solid #444; display: none; }
+        .hidden { display: none; }
         .item { border-bottom: 1px solid #333; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 우측 상단 관리자 로그인 -->
+    <div class="container" id="main-ui">
         <div class="admin-login-area" id="admin-login-area">
             <button class="admin-btn" onclick="googleLogin()">관리자</button>
         </div>
-
         <h2>상담 신청</h2>
         <input type="text" id="femco" placeholder="펨코 닉네임">
         <input type="text" id="nick" placeholder="인게임 닉네임">
@@ -36,31 +29,20 @@
         <select id="attr"><option>작열</option><option>풍압</option><option>철갑</option><option>수냉</option><option>전격</option></select>
         <textarea id="purpose" placeholder="상담 목적" rows="3"></textarea>
         <button onclick="apply()">신청하기</button>
+        <h2>상태 조회</h2>
+        <input type="text" id="check-femco" placeholder="펨코 닉네임">
+        <input type="text" id="check-nick" placeholder="인게임 닉네임">
+        <button onclick="check()">조회하기</button>
+        <div id="result" style="margin-top:10px; font-weight:bold;"></div>
+    </div>
 
-        <div class="section">
-            <h2>상태 조회</h2>
-            <input type="text" id="check-femco" placeholder="펨코 닉네임">
-            <input type="text" id="check-nick" placeholder="인게임 닉네임">
-            <button onclick="check()">조회하기</button>
-            <div id="result" style="margin-top:10px; font-weight:bold;"></div>
-        </div>
-
-        <div id="admin-list" class="admin-list">
-            <h3>전체 내역 (관리자)</h3>
-            <div id="list-container"></div>
-        </div>
+    <div class="container hidden" id="admin-ui">
+        <h2>관리자 모드</h2>
+        <div id="list-container"></div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA9NpQAnWMnFPFcRrsQCwDhkGOlos6LRH0",
-            authDomain: "nikkeclinic-1b867.firebaseapp.com",
-            projectId: "nikkeclinic-1b867",
-            storageBucket: "nikkeclinic-1b867.appspot.com",
-            messagingSenderId: "824089888798",
-            appId: "1:824089888798:web:6e341d4109c57bfc43060f",
-            measurementId: "G-5SXZN1SXZ6"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyA9NpQAnWMnFPFcRrsQCwDhkGOlos6LRH0", authDomain: "nikkeclinic-1b867.firebaseapp.com", projectId: "nikkeclinic-1b867", storageBucket: "nikkeclinic-1b867.appspot.com", messagingSenderId: "824089888798", appId: "1:824089888798:web:6e341d4109c57bfc43060f", measurementId: "G-5SXZN1SXZ6" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
@@ -68,7 +50,8 @@
 
         auth.onAuthStateChanged(u => {
             if (u?.email === ADMIN) {
-                document.getElementById('admin-list').style.display = 'block';
+                document.getElementById('main-ui').classList.add('hidden');
+                document.getElementById('admin-ui').classList.remove('hidden');
                 load();
             }
         });
@@ -77,40 +60,24 @@
             try {
                 const r = await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
                 if (r.user.email === ADMIN) location.reload();
-                else { alert("관리자만 가능"); auth.signOut(); }
             } catch (e) { alert(e.message); }
         }
 
         async function apply() {
-            await db.collection("consults").add({
-                femco: document.getElementById('femco').value,
-                nick: document.getElementById('nick').value,
-                link: document.getElementById('link').value,
-                attr: document.getElementById('attr').value,
-                purpose: document.getElementById('purpose').value,
-                status: "대기 중",
-                time: new Date()
-            });
-            alert("신청 완료!");
-            location.reload();
+            await db.collection("consults").add({ femco: document.getElementById('femco').value, nick: document.getElementById('nick').value, link: document.getElementById('link').value, attr: document.getElementById('attr').value, purpose: document.getElementById('purpose').value, status: "대기 중", time: new Date() });
+            alert("신청 완료!"); location.reload();
         }
 
         async function check() {
-            const f = document.getElementById('check-femco').value;
-            const n = document.getElementById('check-nick').value;
-            const s = await db.collection("consults").where("femco","==",f).where("nick","==",n).get();
-            if(s.empty) document.getElementById('result').innerText = "내역 없음";
-            else s.forEach(d => document.getElementById('result').innerText = "현재 상태: " + d.data().status);
+            const s = await db.collection("consults").where("femco","==",document.getElementById('check-femco').value).where("nick","==",document.getElementById('check-nick').value).get();
+            document.getElementById('result').innerText = s.empty ? "내역 없음" : "현재 상태: " + s.docs[0].data().status;
         }
 
         async function load() {
             const s = await db.collection("consults").orderBy("time", "desc").get();
             const c = document.getElementById('list-container');
             c.innerHTML = "";
-            s.forEach(d => {
-                c.innerHTML += `<div class="item">${d.data().femco}(${d.data().nick}) - ${d.data().status} 
-                <button onclick="approve('${d.id}')" style="width:60px; padding:5px;">승인</button></div>`;
-            });
+            s.forEach(d => c.innerHTML += `<div class="item">${d.data().femco}(${d.data().nick}) - ${d.data().status} <button onclick="approve('${d.id}')">승인</button></div>`);
         }
 
         async function approve(id) {
