@@ -10,39 +10,37 @@
         body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; padding: 20px; }
         .container { max-width: 500px; margin: auto; border: 1px solid #333; padding: 20px; border-radius: 10px; position: relative; }
         .admin-login-area { position: absolute; top: 10px; right: 10px; }
-        .admin-btn-small { padding: 5px 10px; font-size: 12px; background: #444; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        .admin-btn { padding: 4px 8px; font-size: 11px; background: #333; color: #888; border: 1px solid #555; cursor: pointer; border-radius: 4px; }
         input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #1e1e1e; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; margin-top: 10px; background: #007bff; border: none; color: white; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        .result { margin-top: 20px; padding: 15px; background: #252525; border-radius: 5px; border: 1px solid #444; }
-        .admin-action-btn { background: #28a745; margin-top: 10px; display: block; width: 100%; padding: 8px; border: none; color: white; cursor: pointer; border-radius: 4px; }
+        .admin-list { margin-top: 30px; padding: 20px; background: #1a1a1a; border: 1px solid #444; display: none; }
+        .item { border-bottom: 1px solid #333; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="admin-login-area" id="admin-area">
-            <button class="admin-btn-small" onclick="googleLogin()">관리자 로그인</button>
+        <div class="admin-login-area" id="admin-login-area">
+            <button class="admin-btn" onclick="googleLogin()">관리자</button>
         </div>
-        <h2>상담 신청소</h2>
-        <input type="text" id="femco-name" placeholder="펨코 닉네임">
-        <input type="text" id="nickname" placeholder="인게임 닉네임">
-        <input type="text" id="blalink" placeholder="블라링크 주소">
-        <select id="attribute">
-            <option value="작열">작열</option>
-            <option value="풍압">풍압</option>
-            <option value="철갑">철갑</option>
-            <option value="수냉">수냉</option>
-            <option value="전격">전격</option>
-        </select>
-        <textarea id="purpose" placeholder="상담 목적" rows="4"></textarea>
-        <button onclick="applyConsult()">상담 신청하기</button>
 
-        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #333;">
+        <h2>상담 신청</h2>
+        <input type="text" id="femco" placeholder="펨코 닉네임">
+        <input type="text" id="nick" placeholder="인게임 닉네임">
+        <input type="text" id="link" placeholder="블라링크">
+        <select id="attr"><option>작열</option><option>풍압</option><option>철갑</option><option>수냉</option><option>전격</option></select>
+        <textarea id="purpose" placeholder="상담 목적" rows="3"></textarea>
+        <button onclick="apply()">신청하기</button>
 
-        <h2>내 상태 조회</h2>
-        <input type="text" id="check-femco-name" placeholder="펨코 닉네임">
-        <input type="text" id="check-nickname" placeholder="인게임 닉네임">
-        <button onclick="checkStatus()">조회하기</button>
-        <div id="status-result" class="result">정보를 입력하고 조회하세요.</div>
+        <h2 style="margin-top:40px;">내 상태 조회</h2>
+        <input type="text" id="check-femco" placeholder="펨코 닉네임">
+        <input type="text" id="check-nick" placeholder="인게임 닉네임">
+        <button onclick="check()">조회하기</button>
+        <div id="result" style="margin-top:10px; font-weight:bold;"></div>
+
+        <div id="admin-list" class="admin-list">
+            <h3>전체 내역 (관리자)</h3>
+            <div id="list-container"></div>
+        </div>
     </div>
 
     <script>
@@ -55,21 +53,63 @@
             appId: "1:824089888798:web:6e341d4109c57bfc43060f",
             measurementId: "G-5SXZN1SXZ6"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const ADMIN_EMAIL = "dhlim0925@gmail.com";
+        const ADMIN = "dhlim0925@gmail.com";
 
-        // 로그인 상태 체크
-        auth.onAuthStateChanged((user) => {
-            if (user && user.email === ADMIN_EMAIL) {
-                document.getElementById('admin-area').innerHTML = '<span style="font-size:12px; color:#28a745;">관리자 모드 활성화</span>';
+        auth.onAuthStateChanged(u => {
+            if (u?.email === ADMIN) {
+                document.getElementById('admin-login-area').style.display = 'none';
+                document.getElementById('admin-list').style.display = 'block';
+                load();
             }
         });
 
         async function googleLogin() {
-            const provider = new firebase.auth.GoogleAuthProvider();
             try {
-                const result = await auth.signInWithPopup(provider);
-                if (result.user.email === ADMIN_
+                const r = await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+                if (r.user.email === ADMIN) location.reload();
+                else { alert("관리자만 가능"); auth.signOut(); }
+            } catch (e) { alert(e.message); }
+        }
+
+        async function apply() {
+            await db.collection("consults").add({
+                femco: document.getElementById('femco').value,
+                nick: document.getElementById('nick').value,
+                link: document.getElementById('link').value,
+                attr: document.getElementById('attr').value,
+                purpose: document.getElementById('purpose').value,
+                status: "대기 중",
+                time: new Date()
+            });
+            alert("신청 완료!");
+            location.reload();
+        }
+
+        async function check() {
+            const f = document.getElementById('check-femco').value;
+            const n = document.getElementById('check-nick').value;
+            const s = await db.collection("consults").where("femco","==",f).where("nick","==",n).get();
+            if(s.empty) document.getElementById('result').innerText = "내역 없음";
+            else s.forEach(d => document.getElementById('result').innerText = "현재 상태: " + d.data().status);
+        }
+
+        async function load() {
+            const s = await db.collection("consults").orderBy("time", "desc").get();
+            const c = document.getElementById('list-container');
+            c.innerHTML = "";
+            s.forEach(d => {
+                c.innerHTML += `<div class="item">${d.data().femco}(${d.data().nick}) - ${d.data().status} 
+                <button onclick="approve('${d.id}')" style="width:60px; padding:5px;">승인</button></div>`;
+            });
+        }
+
+        async function approve(id) {
+            await db.collection("consults").doc(id).update({ status: "승인 완료" });
+            load();
+        }
+    </script>
+</body>
+</html>
