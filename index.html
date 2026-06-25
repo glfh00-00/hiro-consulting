@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>히로의 상담 신청소</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 500px; margin: auto; border: 1px solid #333; padding: 20px; border-radius: 10px; position: relative; }
+        .admin-login-area { position: absolute; top: 10px; right: 10px; }
+        .admin-btn-small { padding: 5px 10px; font-size: 12px; background: #444; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #1e1e1e; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; margin-top: 10px; background: #007bff; border: none; color: white; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .result { margin-top: 20px; padding: 15px; background: #252525; border-radius: 5px; border: 1px solid #444; }
+        .admin-action-btn { background: #28a745; margin-top: 10px; display: block; width: 100%; padding: 8px; border: none; color: white; cursor: pointer; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="admin-login-area" id="admin-area">
+            <button class="admin-btn-small" onclick="googleLogin()">관리자 로그인</button>
+        </div>
+        <h2>상담 신청소</h2>
+        <input type="text" id="femco-name" placeholder="펨코 닉네임">
+        <input type="text" id="nickname" placeholder="인게임 닉네임">
+        <input type="text" id="blalink" placeholder="블라링크 주소">
+        <select id="attribute">
+            <option value="작열">작열</option>
+            <option value="풍압">풍압</option>
+            <option value="철갑">철갑</option>
+            <option value="수냉">수냉</option>
+            <option value="전격">전격</option>
+        </select>
+        <textarea id="purpose" placeholder="상담 목적" rows="4"></textarea>
+        <button onclick="applyConsult()">상담 신청하기</button>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #333;">
+
+        <h2>내 상태 조회</h2>
+        <input type="text" id="check-femco-name" placeholder="펨코 닉네임">
+        <input type="text" id="check-nickname" placeholder="인게임 닉네임">
+        <button onclick="checkStatus()">조회하기</button>
+        <div id="status-result" class="result">정보를 입력하고 조회하세요.</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9NpQAnWMnFPFcRrsQCwDhkGOlos6LRH0",
+            authDomain: "nikkeclinic-1b867.firebaseapp.com",
+            projectId: "nikkeclinic-1b867",
+            storageBucket: "nikkeclinic-1b867.appspot.com",
+            messagingSenderId: "824089888798",
+            appId: "1:824089888798:web:6e341d4109c57bfc43060f",
+            measurementId: "G-5SXZN1SXZ6"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const ADMIN_EMAIL = "dhlim0925@gmail.com";
+
+        // 로그인 상태 체크
+        auth.onAuthStateChanged((user) => {
+            if (user && user.email === ADMIN_EMAIL) {
+                document.getElementById('admin-area').innerHTML = '<span style="font-size:12px; color:#28a745;">관리자 모드 활성화</span>';
+            }
+        });
+
+        async function googleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                const result = await auth.signInWithPopup(provider);
+                if (result.user.email === ADMIN_
