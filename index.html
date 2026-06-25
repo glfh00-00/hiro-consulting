@@ -9,10 +9,15 @@
     <style>
         body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; padding: 20px; }
         .container { max-width: 500px; margin: auto; border: 1px solid #333; padding: 20px; border-radius: 10px; position: relative; }
+        
+        /* 우측 상단 구석 관리자 로그인 버튼 */
         .admin-login-area { position: absolute; top: 10px; right: 10px; }
         .admin-btn { padding: 4px 8px; font-size: 11px; background: #333; color: #888; border: 1px solid #555; cursor: pointer; border-radius: 4px; }
+        
         input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #1e1e1e; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; margin-top: 10px; background: #007bff; border: none; color: white; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        
+        .section { margin-top: 40px; }
         .admin-list { margin-top: 30px; padding: 20px; background: #1a1a1a; border: 1px solid #444; display: none; }
         .item { border-bottom: 1px solid #333; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
     </style>
@@ -31,11 +36,13 @@
         <textarea id="purpose" placeholder="상담 목적" rows="3"></textarea>
         <button onclick="apply()">신청하기</button>
 
-        <h2 style="margin-top:40px;">내 상태 조회</h2>
-        <input type="text" id="check-femco" placeholder="펨코 닉네임">
-        <input type="text" id="check-nick" placeholder="인게임 닉네임">
-        <button onclick="check()">조회하기</button>
-        <div id="result" style="margin-top:10px; font-weight:bold;"></div>
+        <div class="section">
+            <h2>상태 조회</h2>
+            <input type="text" id="check-femco" placeholder="펨코 닉네임">
+            <input type="text" id="check-nick" placeholder="인게임 닉네임">
+            <button onclick="check()">조회하기</button>
+            <div id="result" style="margin-top:10px; font-weight:bold;"></div>
+        </div>
 
         <div id="admin-list" class="admin-list">
             <h3>전체 내역 (관리자)</h3>
